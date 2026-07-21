@@ -2,14 +2,18 @@ import os
 import sys
 import re
 import time
-import oracledb
+import subprocess
+import oracledb # type: ignore
+
 from datetime import datetime
 from backend import submit_trade
 from backend import search_trade
 
+
 ENVIRONMENT_NAME = "Smoke 3"
 
 TEMPLATE_XML = "trade.xml"
+
 
 ENV_READINESS_QUERY = """
 SELECT TASK_ID,
@@ -42,7 +46,9 @@ def check_environment_readiness():
 
         cursor = connection.cursor()
 
-        cursor.execute(ENV_READINESS_QUERY)
+        cursor.execute(
+            ENV_READINESS_QUERY
+        )
 
         env_readiness_record = cursor.fetchone()
 
@@ -51,18 +57,32 @@ def check_environment_readiness():
             exec_status = env_readiness_record[2]
             val_time = env_readiness_record[3]
 
-            print("\nEnvironment Readiness Check PASSED")
-            print(f"Execution      : {exec_status}")
-            print(f"Execution Time : {val_time}")
+            print(
+                "\nEnvironment Readiness Check PASSED"
+            )
+
+            print(
+                f"Execution      : {exec_status}"
+            )
+
+            print(
+                f"Execution Time : {val_time}"
+            )
 
             return True
 
-        print("\nEnvironment Readiness Check FAILED")
+        print(
+            "\nEnvironment Readiness Check FAILED"
+        )
+
         return False
 
     except Exception as e:
 
-        print(f"\nDatabase Error : {e}")
+        print(
+            f"\nDatabase Error : {e}"
+        )
+
         return False
 
     finally:
@@ -78,7 +98,9 @@ def check_environment_readiness():
 
 def get_next_internal_reference():
 
-    current_day = datetime.now().strftime("%Y%m%d")
+    current_day = datetime.now().strftime(
+        "%Y%m%d"
+    )
 
     try:
 
@@ -91,21 +113,28 @@ def get_next_internal_reference():
             content = f.read()
 
         match = re.search(
-            r'[0-9]{8}[^0-9A-Za-z]*SKP[^0-9]*([0-9]+)',
+            r"[0-9]{8}[^0-9A-Za-z]*SKP[^0-9]*([0-9]+)",
             content
         )
 
-        sequence = int(match.group(1)) if match else 0
+        sequence = (
+            int(match.group(1))
+            if match
+            else 0
+        )
 
-        next_sequence = f"{sequence + 1:02d}"
+        next_sequence = (
+            f"{sequence + 1:02d}"
+        )
 
-        return f"{current_day}_SKP_{next_sequence}"
+        return (
+            f"{current_day}_SKP_{next_sequence}"
+        )
 
     except Exception:
 
         return f"{current_day}_SKP_01"
 
-import subprocess
 
 def run_quartz_task():
 
@@ -123,8 +152,9 @@ def run_quartz_task():
             '$LOG_DIR'
         )
 
-        print("\n===== QUARTZ TASK EXECUTION =====")
-        print(f"Command : {command}")
+        print(
+            "\n===== QUARTZ TASK EXECUTION ====="
+        )
 
         result = subprocess.run(
             command,
@@ -141,13 +171,17 @@ def run_quartz_task():
 
             return False
 
-        print("\n? Quartz Task 19190 completed")
+        print(
+            "\n? Quartz Task 19190 completed"
+        )
 
         return True
 
     except Exception as e:
 
-        print(f"\n? Quartz execution failed : {e}")
+        print(
+            f"\n? Quartz execution failed : {e}"
+        )
 
         return False
 
@@ -156,15 +190,21 @@ def generate_trade_xml():
 
     try:
 
-        timestamp = datetime.now().strftime(
-            "%Y-%m-%dT%H:%M:%S"
+        timestamp = (
+            datetime.now().strftime(
+                "%Y-%m-%dT%H:%M:%S"
+            )
         )
 
-        trade_date = datetime.now().strftime(
-            "%Y-%m-%d"
+        trade_date = (
+            datetime.now().strftime(
+                "%Y-%m-%d"
+            )
         )
 
-        internal_reference = get_next_internal_reference()
+        internal_reference = (
+            get_next_internal_reference()
+        )
 
         with open(
             TEMPLATE_XML,
@@ -201,49 +241,88 @@ def generate_trade_xml():
 
             f.write(xml_content)
 
-        print("\n✅ Trade XML Generated")
-        print(f"Generated File : {output_xml}")
-        print(f"Reference      : {internal_reference}")
+        print("\n? Trade XML Generated")
 
-        return internal_reference, output_xml
+        print(
+            f"Generated File : {output_xml}"
+        )
+
+        print(
+            f"Reference      : {internal_reference}"
+        )
+
+        return (
+            internal_reference,
+            output_xml
+        )
 
     except Exception as e:
 
-        print(f"\n❌ XML Generation Error : {e}")
+        print(
+            f"\n? XML Generation Error : {e}"
+        )
 
         return None, None
 
 
 if __name__ == "__main__":
 
-    print("\n========================================")
-    print("ENVIRONMENT READINESS NOTIFICATION")
-    print("========================================")
-    print(f"Environment : {ENVIRONMENT_NAME}")
-    print(f"Execution   : {datetime.now()}")
+    print(
+        "\n========================================"
+    )
 
-    env_ready = check_environment_readiness()
+    print(
+        "ENVIRONMENT READINESS NOTIFICATION"
+    )
+
+    print(
+        "========================================"
+    )
+
+    print(
+        f"Environment : {ENVIRONMENT_NAME}"
+    )
+
+    print(
+        f"Execution   : {datetime.now()}"
+    )
+
+    env_ready = (
+        check_environment_readiness()
+    )
 
     if env_ready:
 
-    print("\nSTATUS : READY")
+        print("\nSTATUS : READY")
 
-    quartz_success = run_quartz_task()
+        quartz_success = (
+            run_quartz_task()
+        )
 
-    if not quartz_success:
+        if not quartz_success:
 
-        print("\n? Quartz task execution failed")
+            print(
+                "\n? Quartz task execution failed"
+            )
 
-        sys.exit(1)
+            sys.exit(1)
 
-    internal_reference, output_xml = generate_trade_xml()
+        (
+            internal_reference,
+            output_xml
+        ) = generate_trade_xml()
 
         if not internal_reference:
 
-            print("\nTrade XML generation failed")
+            print(
+                "\n? Trade XML generation failed"
+            )
+
             sys.exit(1)
 
-        print("\nTrade XML generated successfully")
+        print(
+            "\n? Trade XML generated successfully"
+        )
 
         with open(
             output_xml,
@@ -258,17 +337,27 @@ if __name__ == "__main__":
             xml_content
         )
 
-        print("\n===== TRADE SUBMISSION =====")
+        print(
+            "\n===== TRADE SUBMISSION ====="
+        )
+
         print(result)
 
         if result["status"] != "SUCCESS":
 
-            print("\n❌ Trade submission failed")
+            print(
+                "\n? Trade submission failed"
+            )
+
             sys.exit(1)
 
-        print("\n✅ Trade submitted successfully")
+        print(
+            "\n? Trade submitted successfully"
+        )
 
-        print("\nWaiting 20 seconds for trade creation...")
+        print(
+            "\nWaiting 20 seconds for trade creation..."
+        )
 
         time.sleep(20)
 
@@ -277,55 +366,68 @@ if __name__ == "__main__":
             internal_reference
         )
 
-        print("\n===== TRADE SEARCH =====")
-
-       if search_result["count"] > 0:
-
-    trade = search_result["rows"][0]
-
-    trade_status = trade["Status"]
-
-    print("\n? Trade Found")
-
-    print(
-        f"Trade ID      : "
-        f"{trade['Trade ID']}"
-    )
-
-    print(
-        f"Reference     : "
-        f"{trade['External Reference']}"
-    )
-
-    print(
-        f"Status        : "
-        f"{trade_status}"
-    )
-
-    if trade_status == "BS_FINALIZED":
-
         print(
-            "\n? Trade successfully "
-            "reached BS_FINALIZED"
+            "\n===== TRADE SEARCH ====="
         )
 
-    else:
+        if search_result["count"] > 0:
 
-        print(
-            f"\n? Trade status is "
-            f"{trade_status} "
-            f"instead of BS_FINALIZED"
-        )
+            trade = (
+                search_result["rows"][0]
+            )
 
-        sys.exit(1)
+            trade_status = (
+                trade["Status"]
+            )
+
+            print("\n? Trade Found")
+
+            print(
+                f"Trade ID      : "
+                f"{trade['Trade ID']}"
+            )
+
+            print(
+                f"Reference     : "
+                f"{trade['External Reference']}"
+            )
+
+            print(
+                f"Status        : "
+                f"{trade_status}"
+            )
+
+            if trade_status == "BS_FINALIZED":
+
+                print(
+                    "\n? Trade successfully reached BS_FINALIZED"
+                )
+
+                print(
+                    "\n? END-TO-END FLOW COMPLETED SUCCESSFULLY"
+                )
+
+            else:
+
+                print(
+                    f"\n? Trade status is "
+                    f"{trade_status} "
+                    f"instead of BS_FINALIZED"
+                )
+
+                sys.exit(1)
+
         else:
 
             print(
-                f"\n⚠ No trade found for "
+                f"\n? No trade found for "
                 f"{internal_reference}"
             )
+
+            sys.exit(1)
 
     else:
 
         print("\nSTATUS : NOT READY")
+
         sys.exit(1)
