@@ -1,0 +1,1 @@
+from backend import submit_tradewith open(    "message-broker3/request/trade.xml",    "r",    encoding="utf-8") as f:    xml_content = f.read()result = submit_trade(    "Smoke3",    xml_content)print(result)

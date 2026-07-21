@@ -1,0 +1,17 @@
+{
+  "Smoke2": {
+    "host": "tcdbd01.xeops.deutsche-boerse.de",
+    "port": 1572,
+    "service_name": "PCOPY",
+    "username": "pcopy",
+    "password": "pCOPYeUREX123"
+  },
+
+  "Smoke3": {
+    "host": "tcdbd01.xeops.deutsche-boerse.de",
+    "port": 1573,
+    "service_name": "REG2",
+    "username": "REG2",
+    "password": "topSecret321"
+  }
+}
