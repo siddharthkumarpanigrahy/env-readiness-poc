@@ -1,0 +1,281 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<EurexOTCEntryXML:EurexOTCEntryXML xmlns:EurexOTCEntryXML="https://www.eurex.com/ec-en/EurexOTCEntryXML" xmlns:fpml="http://www.fpml.org/FpML-5/confirmation">
+  <EurexOTCEntryXML:header>
+    <EurexOTCEntryXML:messageType>TradeSubmissionRequest</EurexOTCEntryXML:messageType>
+    <EurexOTCEntryXML:sender>MKTESTER</EurexOTCEntryXML:sender>
+    <EurexOTCEntryXML:receiver>EUREX</EurexOTCEntryXML:receiver>
+    <EurexOTCEntryXML:timeStamp>{{TIMESTAMP}}</EurexOTCEntryXML:timeStamp>
+    <EurexOTCEntryXML:messageId>{{INTERNAL_REFERENCE}}</EurexOTCEntryXML:messageId>
+  </EurexOTCEntryXML:header>
+  <EurexOTCEntryXML:bodyExtension>
+    <EurexOTCEntryXML:additionalSubmissionInformation>
+      <EurexOTCEntryXML:srcSysTradeId>{{INTERNAL_REFERENCE}}</EurexOTCEntryXML:srcSysTradeId>
+      <EurexOTCEntryXML:srcSysGroupId>{{INTERNAL_REFERENCE}}</EurexOTCEntryXML:srcSysGroupId>
+      <EurexOTCEntryXML:srcSysId>BLOOMBERG</EurexOTCEntryXML:srcSysId>
+      <!--EurexOTCEntryXML:feeComment paymentType="UpfrontFee_1"/-->
+      <EurexOTCEntryXML:partyInformation>
+        <EurexOTCEntryXML:party>
+          <EurexOTCEntryXML:nettingString/>
+          <EurexOTCEntryXML:EurexLEId/>
+          <EurexOTCEntryXML:globalLEId href="party1"/>
+          <EurexOTCEntryXML:srcSysLEId/>
+          <EurexOTCEntryXML:internalReference>{{INTERNAL_REFERENCE}}</EurexOTCEntryXML:internalReference>
+          <EurexOTCEntryXML:creditId/>
+          <!--EurexOTCEntryXML:ClearingBroker>
+          <EurexOTCEntryXML:EurexLEId>BOSLO</EurexOTCEntryXML:EurexLEId>
+          <EurexOTCEntryXML:globalLEId>BOSLO12345BOSLO12345</EurexOTCEntryXML:globalLEId>
+          <EurexOTCEntryXML:srcSysLEId>
+          </EurexOTCEntryXML:srcSysLEId>
+          <EurexOTCEntryXML:internalReference>
+          </EurexOTCEntryXML:internalReference>
+          <EurexOTCEntryXML:isTakeUpRequired>N</EurexOTCEntryXML:isTakeUpRequired>
+        </EurexOTCEntryXML:ClearingBroker-->
+      </EurexOTCEntryXML:party>
+      <EurexOTCEntryXML:party>
+        <EurexOTCEntryXML:nettingString/>
+        <EurexOTCEntryXML:EurexLEId/>
+        <EurexOTCEntryXML:globalLEId href="party2"/>
+        <EurexOTCEntryXML:srcSysLEId/>
+        <EurexOTCEntryXML:internalReference>{{INTERNAL_REFERENCE}}</EurexOTCEntryXML:internalReference>
+        <EurexOTCEntryXML:creditId/>
+        <!-- <EurexOTCEntryXML:ClearingBroker>
+        <EurexOTCEntryXML:EurexLEId/>
+        <EurexOTCEntryXML:globalLEId>BOSLO12345BOSLO12345</EurexOTCEntryXML:globalLEId>
+        <EurexOTCEntryXML:srcSysLEId/>
+        <EurexOTCEntryXML:internalReference/>
+        <EurexOTCEntryXML:isTakeUpRequired>Y</EurexOTCEntryXML:isTakeUpRequired>
+      </EurexOTCEntryXML:ClearingBroker> -->
+    </EurexOTCEntryXML:party>
+  </EurexOTCEntryXML:partyInformation>
+</EurexOTCEntryXML:additionalSubmissionInformation>
+</EurexOTCEntryXML:bodyExtension>
+<EurexOTCEntryXML:body>
+  <fpml:dataDocument fpmlVersion="5-7">
+    <fpml:trade>
+      <fpml:tradeHeader>
+        <fpml:partyTradeIdentifier>
+          <fpml:partyReference href="party1"/>
+          <fpml:accountReference href="ACC_party1"/>
+          <fpml:tradeId tradeIdScheme=""/>
+        </fpml:partyTradeIdentifier>
+        <fpml:partyTradeIdentifier>
+          <fpml:partyReference href="party2"/>
+          <fpml:accountReference href="ACC_party2"/>
+          <fpml:tradeId tradeIdScheme=""/>
+        </fpml:partyTradeIdentifier>
+        <fpml:tradeDate>{{TRADE_DATE}}</fpml:tradeDate>
+      </fpml:tradeHeader>
+      <fpml:swap>
+        <fpml:swapStream id="floatingLeg">
+          <fpml:payerPartyReference href="party1"/>
+          <fpml:receiverPartyReference href="party2"/>
+          <fpml:calculationPeriodDates id="floatingLegCalcPeriodDates">
+            <fpml:effectiveDate>
+              <fpml:unadjustedDate>2023-05-27</fpml:unadjustedDate>
+              <fpml:dateAdjustments>
+                <fpml:businessDayConvention>MODFOLLOWING</fpml:businessDayConvention>
+                <fpml:businessCenters>
+                  <fpml:businessCenter>EUTA</fpml:businessCenter>
+                </fpml:businessCenters>
+              </fpml:dateAdjustments>
+            </fpml:effectiveDate>
+            <fpml:terminationDate>
+              <fpml:unadjustedDate>2070-05-27</fpml:unadjustedDate>
+              <fpml:dateAdjustments>
+                <fpml:businessDayConvention>MODFOLLOWING</fpml:businessDayConvention>
+                <fpml:businessCenters>
+                  <fpml:businessCenter>EUTA</fpml:businessCenter>
+                </fpml:businessCenters>
+              </fpml:dateAdjustments>
+            </fpml:terminationDate>
+            <fpml:calculationPeriodDatesAdjustments>
+              <fpml:businessDayConvention>MODFOLLOWING</fpml:businessDayConvention>
+              <fpml:businessCenters>
+                <fpml:businessCenter>EUTA</fpml:businessCenter>
+              </fpml:businessCenters>
+            </fpml:calculationPeriodDatesAdjustments>
+            <fpml:calculationPeriodFrequency>
+              <fpml:periodMultiplier>3</fpml:periodMultiplier>
+              <fpml:period>M</fpml:period>
+              <fpml:rollConvention>NONE</fpml:rollConvention>
+            </fpml:calculationPeriodFrequency>
+          </fpml:calculationPeriodDates>
+          <fpml:paymentDates id="floatingLegPaymentDates">
+            <fpml:calculationPeriodDatesReference href="floatingLegCalcPeriodDates"/>
+            <fpml:paymentFrequency>
+              <fpml:periodMultiplier>3</fpml:periodMultiplier>
+              <fpml:period>M</fpml:period>
+            </fpml:paymentFrequency>
+            <fpml:payRelativeTo>CalculationPeriodEndDate</fpml:payRelativeTo>
+            <fpml:paymentDaysOffset>
+              <fpml:periodMultiplier>0</fpml:periodMultiplier>
+              <fpml:period>D</fpml:period>
+              <fpml:dayType>Business</fpml:dayType>
+            </fpml:paymentDaysOffset>
+            <fpml:paymentDatesAdjustments>
+              <fpml:businessDayConvention>MODFOLLOWING</fpml:businessDayConvention>
+              <fpml:businessCenters>
+                <fpml:businessCenter>EUTA</fpml:businessCenter>
+              </fpml:businessCenters>
+            </fpml:paymentDatesAdjustments>
+          </fpml:paymentDates>
+          <fpml:resetDates id="floatingLegResetDates">
+            <fpml:calculationPeriodDatesReference href="floatingLegCalcPeriodDates"/>
+            <fpml:resetRelativeTo>CalculationPeriodStartDate</fpml:resetRelativeTo>
+            <fpml:fixingDates>
+              <fpml:periodMultiplier>0</fpml:periodMultiplier>
+              <fpml:period>D</fpml:period>
+              <fpml:dayType>Business</fpml:dayType>
+              <fpml:businessDayConvention>PRECEDING</fpml:businessDayConvention>
+              <fpml:businessCenters>
+                <fpml:businessCenter>EUTA</fpml:businessCenter>
+              </fpml:businessCenters>
+              <fpml:dateRelativeTo href="floatingLegResetDates"/>
+            </fpml:fixingDates>
+            <fpml:resetFrequency>
+              <fpml:periodMultiplier>3</fpml:periodMultiplier>
+              <fpml:period>M</fpml:period>
+            </fpml:resetFrequency>
+            <fpml:resetDatesAdjustments>
+              <fpml:businessDayConvention>MODFOLLOWING</fpml:businessDayConvention>
+              <fpml:businessCenters>
+                <fpml:businessCenter>EUTA</fpml:businessCenter>
+              </fpml:businessCenters>
+            </fpml:resetDatesAdjustments>
+          </fpml:resetDates>
+          <fpml:calculationPeriodAmount>
+            <fpml:calculation>
+              <fpml:notionalSchedule>
+                <fpml:notionalStepSchedule>
+                  <fpml:initialValue>3889007</fpml:initialValue>
+                  <fpml:currency>EUR</fpml:currency>
+                </fpml:notionalStepSchedule>
+              </fpml:notionalSchedule>
+              <fpml:floatingRateCalculation>
+                <fpml:floatingRateIndex>EUR-EURIBOR-Reuters</fpml:floatingRateIndex>
+                <fpml:indexTenor>
+                  <fpml:periodMultiplier>3</fpml:periodMultiplier>
+                  <fpml:period>M</fpml:period>
+                </fpml:indexTenor>
+                <fpml:spreadSchedule>
+                  <fpml:initialValue>0.0001102</fpml:initialValue>
+                </fpml:spreadSchedule>
+              </fpml:floatingRateCalculation>
+              <fpml:dayCountFraction>ACT/365.FIXED</fpml:dayCountFraction>
+            </fpml:calculation>
+          </fpml:calculationPeriodAmount>
+        </fpml:swapStream>
+        <fpml:swapStream id="fixedLeg">
+          <fpml:payerPartyReference href="party2"/>
+          <fpml:receiverPartyReference href="party1"/>
+          <fpml:calculationPeriodDates id="fixedLegCalcPeriodDates">
+            <fpml:effectiveDate>
+              <fpml:unadjustedDate>2023-05-27</fpml:unadjustedDate>
+              <fpml:dateAdjustments>
+                <fpml:businessDayConvention>MODFOLLOWING</fpml:businessDayConvention>
+                <fpml:businessCenters>
+                  <fpml:businessCenter>EUTA</fpml:businessCenter>
+                </fpml:businessCenters>
+              </fpml:dateAdjustments>
+            </fpml:effectiveDate>
+            <fpml:terminationDate>
+              <fpml:unadjustedDate>2070-05-27</fpml:unadjustedDate>
+              <fpml:dateAdjustments>
+                <fpml:businessDayConvention>MODFOLLOWING</fpml:businessDayConvention>
+                <fpml:businessCenters>
+                  <fpml:businessCenter>EUTA</fpml:businessCenter>
+                </fpml:businessCenters>
+              </fpml:dateAdjustments>
+            </fpml:terminationDate>
+            <fpml:calculationPeriodDatesAdjustments>
+              <fpml:businessDayConvention>MODFOLLOWING</fpml:businessDayConvention>
+              <fpml:businessCenters>
+                <fpml:businessCenter>EUTA</fpml:businessCenter>
+              </fpml:businessCenters>
+            </fpml:calculationPeriodDatesAdjustments>
+            <fpml:calculationPeriodFrequency>
+              <fpml:periodMultiplier>3</fpml:periodMultiplier>
+              <fpml:period>M</fpml:period>
+              <fpml:rollConvention>NONE</fpml:rollConvention>
+            </fpml:calculationPeriodFrequency>
+          </fpml:calculationPeriodDates>
+          <fpml:paymentDates id="fixedLegPaymentDates">
+            <fpml:calculationPeriodDatesReference href="fixedLegCalcPeriodDates"/>
+            <fpml:paymentFrequency>
+              <fpml:periodMultiplier>3</fpml:periodMultiplier>
+              <fpml:period>M</fpml:period>
+            </fpml:paymentFrequency>
+            <fpml:payRelativeTo>CalculationPeriodEndDate</fpml:payRelativeTo>
+            <fpml:paymentDaysOffset>
+              <fpml:periodMultiplier>0</fpml:periodMultiplier>
+              <fpml:period>D</fpml:period>
+              <fpml:dayType>Business</fpml:dayType>
+            </fpml:paymentDaysOffset>
+            <fpml:paymentDatesAdjustments>
+              <fpml:businessDayConvention>MODFOLLOWING</fpml:businessDayConvention>
+              <fpml:businessCenters>
+                <fpml:businessCenter>EUTA</fpml:businessCenter>
+              </fpml:businessCenters>
+            </fpml:paymentDatesAdjustments>
+          </fpml:paymentDates>
+          <fpml:calculationPeriodAmount>
+            <fpml:calculation>
+              <fpml:notionalSchedule>
+                <fpml:notionalStepSchedule>
+                  <fpml:initialValue>3889007</fpml:initialValue>
+                  <fpml:currency>EUR</fpml:currency>
+                </fpml:notionalStepSchedule>
+              </fpml:notionalSchedule>
+              <fpml:fixedRateSchedule>
+                <fpml:initialValue>0.004139</fpml:initialValue>
+              </fpml:fixedRateSchedule>
+              <fpml:dayCountFraction>ACT/365.FIXED</fpml:dayCountFraction>
+            </fpml:calculation>
+          </fpml:calculationPeriodAmount>
+        </fpml:swapStream>
+        <!--fpml:additionalPayment>
+        <fpml:payerPartyReference href="party1"/>
+        <fpml:receiverPartyReference href="party2"/>
+        <fpml:paymentAmount>
+          <fpml:currency>EUR</fpml:currency>
+          <fpml:amount>2000.0</fpml:amount>
+        </fpml:paymentAmount>
+        <fpml:paymentDate>
+          <fpml:unadjustedDate>2026-05-27</fpml:unadjustedDate>
+          <fpml:dateAdjustments>
+            <fpml:businessDayConvention>MODFOLLOWING</fpml:businessDayConvention>
+            <fpml:businessCenters>
+              <fpml:businessCenter>EUTA</fpml:businessCenter>
+            </fpml:businessCenters>
+          </fpml:dateAdjustments>
+        </fpml:paymentDate>
+        <fpml:paymentType>UpfrontFee_1</fpml:paymentType>
+      </fpml:additionalPayment-->
+    </fpml:swap>
+    <fpml:documentation>
+      <fpml:masterAgreement>
+        <fpml:masterAgreementType masterAgreementTypeScheme="">
+        </fpml:masterAgreementType>
+      </fpml:masterAgreement>
+      <fpml:contractualDefinitions>DRV</fpml:contractualDefinitions>
+    </fpml:documentation>
+  </fpml:trade>
+  <fpml:party id="party1">
+    <fpml:partyId>CBKFR12345CBKFR12345</fpml:partyId>
+    <fpml:partyName/>
+  </fpml:party>
+  <fpml:party id="party2">
+    <fpml:partyId>DBKFR12345DBKFR12345</fpml:partyId>
+    <fpml:partyName/>
+  </fpml:party>
+  <fpml:account id="ACC_party1">
+    <fpml:accountId>CBKFR_P</fpml:accountId>
+    <fpml:accountBeneficiary href="party1"/>
+  </fpml:account>
+  <fpml:account id="ACC_party2">
+    <fpml:accountId>DBKFR_P</fpml:accountId>
+    <fpml:accountBeneficiary href="party2"/>
+  </fpml:account>
+</fpml:dataDocument>
+</EurexOTCEntryXML:body>
+</EurexOTCEntryXML:EurexOTCEntryXML>
