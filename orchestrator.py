@@ -521,3 +521,8 @@ if __name__ == "__main__":
     print(
         f"ENVIRONMENT={ENVIRONMENT_NAME}"
     )
+with open("email.properties", "w") as f:
+    f.write(f"TRADE_ID={trade['Trade ID']}\n")
+    f.write(f"TRADE_STATUS={trade_status}\n")
+    f.write(f"REFERENCE={internal_reference}\n")
+    f.write(f"ENVIRONMENT={ENVIRONMENT_NAME}\n")
