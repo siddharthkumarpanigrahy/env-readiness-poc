@@ -196,7 +196,7 @@ def run_quartz_task():
     try:
 
         command = (
-            f"{CALYPSO_CODE}/client/bin/calypso "
+            f"sh {CALYPSO_CODE}/client/bin/calypso "
             f"@{CALYPSO_CODE}/client/resources/jvmArgs17.txt "
             "-Djavax.net.ssl.trustStore=/home/$USER/build/calypso-code/client/resources/certificates/client.truststore "
             "-Djavax.net.ssl.trustStorePassword=calypso "
