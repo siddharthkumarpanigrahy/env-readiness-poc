@@ -2,7 +2,7 @@ import os
 import sys
 import re
 import time
-import oracledb # type: ignore
+import oracledb
 from datetime import datetime
 from backend import submit_trade
 from backend import search_trade
@@ -105,6 +105,52 @@ def get_next_internal_reference():
 
         return f"{current_day}_SKP_01"
 
+import subprocess
+
+def run_quartz_task():
+
+    try:
+
+        command = (
+            '$CALYPSO_CODE/client/bin/calypso '
+            '@$CALYPSO_CODE/client/resources/jvmArgs17.txt '
+            '-Djavax.net.ssl.trustStore=/home/$USER/build/calypso-code/client/resources/certificates/client.truststore '
+            '-Djavax.net.ssl.trustStorePassword=calypso '
+            'com.calypso.apps.startup.StartQuartzTaskRunner '
+            '-env $USER '
+            '-user calypso_user '
+            '-task 19190 '
+            '$LOG_DIR'
+        )
+
+        print("\n===== QUARTZ TASK EXECUTION =====")
+        print(f"Command : {command}")
+
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+
+        print(result.stdout)
+
+        if result.returncode != 0:
+
+            print(result.stderr)
+
+            return False
+
+        print("\n? Quartz Task 19190 completed")
+
+        return True
+
+    except Exception as e:
+
+        print(f"\n? Quartz execution failed : {e}")
+
+        return False
+
 
 def generate_trade_xml():
 
@@ -180,9 +226,17 @@ if __name__ == "__main__":
 
     if env_ready:
 
-        print("\nSTATUS : READY")
+    print("\nSTATUS : READY")
 
-        internal_reference, output_xml = generate_trade_xml()
+    quartz_success = run_quartz_task()
+
+    if not quartz_success:
+
+        print("\n? Quartz task execution failed")
+
+        sys.exit(1)
+
+    internal_reference, output_xml = generate_trade_xml()
 
         if not internal_reference:
 
@@ -225,27 +279,45 @@ if __name__ == "__main__":
 
         print("\n===== TRADE SEARCH =====")
 
-        if search_result["count"] > 0:
+       if search_result["count"] > 0:
 
-            trade = search_result["rows"][0]
+    trade = search_result["rows"][0]
 
-            print("\n✅ Trade Found")
+    trade_status = trade["Status"]
 
-            print(
-                f"Trade ID      : "
-                f"{trade['Trade ID']}"
-            )
+    print("\n? Trade Found")
 
-            print(
-                f"Reference     : "
-                f"{trade['External Reference']}"
-            )
+    print(
+        f"Trade ID      : "
+        f"{trade['Trade ID']}"
+    )
 
-            print(
-                f"Status        : "
-                f"{trade['Status']}"
-            )
+    print(
+        f"Reference     : "
+        f"{trade['External Reference']}"
+    )
 
+    print(
+        f"Status        : "
+        f"{trade_status}"
+    )
+
+    if trade_status == "BS_FINALIZED":
+
+        print(
+            "\n? Trade successfully "
+            "reached BS_FINALIZED"
+        )
+
+    else:
+
+        print(
+            f"\n? Trade status is "
+            f"{trade_status} "
+            f"instead of BS_FINALIZED"
+        )
+
+        sys.exit(1)
         else:
 
             print(
