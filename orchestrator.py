@@ -29,6 +29,52 @@ ORDER BY val_time DESC
 """
 
 
+def create_email_summary(
+    environment,
+    status,
+    reference="N/A",
+    trade_id="N/A",
+    trade_status="N/A",
+    reason=""
+):
+
+    with open(
+        "email_summary.txt",
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        f.write(
+            "Environment Readiness Update\n\n"
+        )
+
+        f.write(
+            f"Environment : {environment}\n"
+        )
+
+        f.write(
+            f"Status      : {status}\n"
+        )
+
+        f.write(
+            f"Reference   : {reference}\n"
+        )
+
+        f.write(
+            f"Trade ID    : {trade_id}\n"
+        )
+
+        f.write(
+            f"Trade Status: {trade_status}\n"
+        )
+
+        if reason:
+
+            f.write(
+                f"Reason      : {reason}\n"
+            )
+
+
 def check_environment_readiness():
 
     connection = None
@@ -172,7 +218,7 @@ def run_quartz_task():
             return False
 
         print(
-            "\n? Quartz Task 19190 completed"
+            "\nQuartz Task 19190 completed"
         )
 
         return True
@@ -180,7 +226,7 @@ def run_quartz_task():
     except Exception as e:
 
         print(
-            f"\n? Quartz execution failed : {e}"
+            f"\nQuartz execution failed : {e}"
         )
 
         return False
@@ -190,16 +236,12 @@ def generate_trade_xml():
 
     try:
 
-        timestamp = (
-            datetime.now().strftime(
-                "%Y-%m-%dT%H:%M:%S"
-            )
+        timestamp = datetime.now().strftime(
+            "%Y-%m-%dT%H:%M:%S"
         )
 
-        trade_date = (
-            datetime.now().strftime(
-                "%Y-%m-%d"
-            )
+        trade_date = datetime.now().strftime(
+            "%Y-%m-%d"
         )
 
         internal_reference = (
@@ -241,7 +283,9 @@ def generate_trade_xml():
 
             f.write(xml_content)
 
-        print("\n? Trade XML Generated")
+        print(
+            "\nTrade XML Generated"
+        )
 
         print(
             f"Generated File : {output_xml}"
@@ -259,7 +303,7 @@ def generate_trade_xml():
     except Exception as e:
 
         print(
-            f"\n? XML Generation Error : {e}"
+            f"\nXML Generation Error : {e}"
         )
 
         return None, None
@@ -291,143 +335,181 @@ if __name__ == "__main__":
         check_environment_readiness()
     )
 
-    if env_ready:
+    if not env_ready:
 
-        print("\nSTATUS : READY")
-
-        quartz_success = (
-            run_quartz_task()
+        create_email_summary(
+            ENVIRONMENT_NAME,
+            "NOT READY",
+            reason="Environment readiness check failed"
         )
-
-        if not quartz_success:
-
-            print(
-                "\n? Quartz task execution failed"
-            )
-
-            sys.exit(1)
-
-        (
-            internal_reference,
-            output_xml
-        ) = generate_trade_xml()
-
-        if not internal_reference:
-
-            print(
-                "\n? Trade XML generation failed"
-            )
-
-            sys.exit(1)
-
-        print(
-            "\n? Trade XML generated successfully"
-        )
-
-        with open(
-            output_xml,
-            "r",
-            encoding="utf-8"
-        ) as f:
-
-            xml_content = f.read()
-
-        result = submit_trade(
-            "Smoke3",
-            xml_content
-        )
-
-        print(
-            "\n===== TRADE SUBMISSION ====="
-        )
-
-        print(result)
-
-        if result["status"] != "SUCCESS":
-
-            print(
-                "\n? Trade submission failed"
-            )
-
-            sys.exit(1)
-
-        print(
-            "\n? Trade submitted successfully"
-        )
-
-        print(
-            "\nWaiting 20 seconds for trade creation..."
-        )
-
-        time.sleep(20)
-
-        search_result = search_trade(
-            "Smoke3",
-            internal_reference
-        )
-
-        print(
-            "\n===== TRADE SEARCH ====="
-        )
-
-        if search_result["count"] > 0:
-
-            trade = (
-                search_result["rows"][0]
-            )
-
-            trade_status = (
-                trade["Status"]
-            )
-
-            print("\n? Trade Found")
-
-            print(
-                f"Trade ID      : "
-                f"{trade['Trade ID']}"
-            )
-
-            print(
-                f"Reference     : "
-                f"{trade['External Reference']}"
-            )
-
-            print(
-                f"Status        : "
-                f"{trade_status}"
-            )
-
-            if trade_status == "BS_FINALIZED":
-
-                print(
-                    "\n? Trade successfully reached BS_FINALIZED"
-                )
-
-                print(
-                    "\n? END-TO-END FLOW COMPLETED SUCCESSFULLY"
-                )
-
-            else:
-
-                print(
-                    f"\n? Trade status is "
-                    f"{trade_status} "
-                    f"instead of BS_FINALIZED"
-                )
-
-                sys.exit(1)
-
-        else:
-
-            print(
-                f"\n? No trade found for "
-                f"{internal_reference}"
-            )
-
-            sys.exit(1)
-
-    else:
 
         print("\nSTATUS : NOT READY")
 
         sys.exit(1)
+
+    print("\nSTATUS : READY")
+
+    quartz_success = (
+        run_quartz_task()
+    )
+
+    if not quartz_success:
+
+        create_email_summary(
+            ENVIRONMENT_NAME,
+            "FAILED",
+            reason="Quartz Task 19190 execution failed"
+        )
+
+        sys.exit(1)
+
+    internal_reference, output_xml = (
+        generate_trade_xml()
+    )
+
+    if not internal_reference:
+
+        create_email_summary(
+            ENVIRONMENT_NAME,
+            "FAILED",
+            reason="Trade XML generation failed"
+        )
+
+        sys.exit(1)
+
+    with open(
+        output_xml,
+        "r",
+        encoding="utf-8"
+    ) as f:
+
+        xml_content = f.read()
+
+    result = submit_trade(
+        "Smoke3",
+        xml_content
+    )
+
+    print(
+        "\n===== TRADE SUBMISSION ====="
+    )
+
+    print(result)
+
+    if result["status"] != "SUCCESS":
+
+        create_email_summary(
+            ENVIRONMENT_NAME,
+            "FAILED",
+            reference=internal_reference,
+            reason="Trade submission failed"
+        )
+
+        sys.exit(1)
+
+    print(
+        "\nTrade submitted successfully"
+    )
+
+    print(
+        "\nWaiting 20 seconds for trade creation..."
+    )
+
+    time.sleep(20)
+
+    search_result = search_trade(
+        "Smoke3",
+        internal_reference
+    )
+
+    print(
+        "\n===== TRADE SEARCH ====="
+    )
+
+    if search_result["count"] == 0:
+
+        create_email_summary(
+            ENVIRONMENT_NAME,
+            "FAILED",
+            reference=internal_reference,
+            reason="Trade not found"
+        )
+
+        print(
+            f"\nNo trade found for "
+            f"{internal_reference}"
+        )
+
+        sys.exit(1)
+
+    trade = search_result["rows"][0]
+
+    trade_status = trade["Status"]
+
+    print("\nTrade Found")
+
+    print(
+        f"Trade ID      : "
+        f"{trade['Trade ID']}"
+    )
+
+    print(
+        f"Reference     : "
+        f"{trade['External Reference']}"
+    )
+
+    print(
+        f"Status        : "
+        f"{trade_status}"
+    )
+
+    if trade_status != "BS_FINALIZED":
+
+        create_email_summary(
+            ENVIRONMENT_NAME,
+            "FAILED",
+            reference=internal_reference,
+            trade_id=trade["Trade ID"],
+            trade_status=trade_status,
+            reason="Trade not in BS_FINALIZED status"
+        )
+
+        print(
+            f"\nTrade status is "
+            f"{trade_status} "
+            f"instead of BS_FINALIZED"
+        )
+
+        sys.exit(1)
+
+    create_email_summary(
+        ENVIRONMENT_NAME,
+        "READY",
+        reference=internal_reference,
+        trade_id=trade["Trade ID"],
+        trade_status=trade_status
+    )
+
+    print(
+        "\nTrade successfully reached BS_FINALIZED"
+    )
+
+    print(
+        "\nEND-TO-END FLOW COMPLETED SUCCESSFULLY"
+    )
+
+    print(
+        f"TRADE_ID={trade['Trade ID']}"
+    )
+
+    print(
+        f"TRADE_STATUS={trade_status}"
+    )
+
+    print(
+        f"REFERENCE={internal_reference}"
+    )
+
+    print(
+        f"ENVIRONMENT={ENVIRONMENT_NAME}"
+    )
