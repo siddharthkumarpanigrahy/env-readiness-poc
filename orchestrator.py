@@ -14,6 +14,14 @@ ENVIRONMENT_NAME = "Smoke 3"
 
 TEMPLATE_XML = "trade.xml"
 
+CALYPSO_CODE = (
+    "/home/otcci/jenkins-eclci/workspace/"
+    "OTC/OTC-Core/Accenture_Jobs/"
+    "ManagedJobs/Git-files-no-hist"
+)
+
+LOG_DIR = "/tmp"
+
 
 ENV_READINESS_QUERY = """
 SELECT TASK_ID,
@@ -69,7 +77,6 @@ def create_email_summary(
         )
 
         if reason:
-
             f.write(
                 f"Reason      : {reason}\n"
             )
@@ -139,7 +146,9 @@ def check_environment_readiness():
         if connection:
             connection.close()
 
-        print("DB Disconnected")
+        print(
+            "DB Disconnected"
+        )
 
 
 def get_next_internal_reference():
@@ -187,20 +196,26 @@ def run_quartz_task():
     try:
 
         command = (
-            '$CALYPSO_CODE/client/bin/calypso '
-            '@$CALYPSO_CODE/client/resources/jvmArgs17.txt '
-            '-Djavax.net.ssl.trustStore=/home/$USER/build/calypso-code/client/resources/certificates/client.truststore '
-            '-Djavax.net.ssl.trustStorePassword=calypso '
-            'com.calypso.apps.startup.StartQuartzTaskRunner '
-            '-env $USER '
-            '-user calypso_user '
-            '-task 19190 '
-            '$LOG_DIR'
+            f"{CALYPSO_CODE}/client/bin/calypso "
+            f"@{CALYPSO_CODE}/client/resources/jvmArgs17.txt "
+            "-Djavax.net.ssl.trustStore=/home/$USER/build/calypso-code/client/resources/certificates/client.truststore "
+            "-Djavax.net.ssl.trustStorePassword=calypso "
+            "com.calypso.apps.startup.StartQuartzTaskRunner "
+            "-env $USER "
+            "-user calypso_user "
+            "-task 19190 "
+            f"{LOG_DIR}"
         )
 
         print(
             "\n===== QUARTZ TASK EXECUTION ====="
         )
+
+        print(
+            "\nExecuting Quartz Command:"
+        )
+
+        print(command)
 
         result = subprocess.run(
             command,
@@ -209,12 +224,13 @@ def run_quartz_task():
             text=True
         )
 
-        print(result.stdout)
+        if result.stdout:
+            print(result.stdout)
 
-        if result.returncode != 0:
-
+        if result.stderr:
             print(result.stderr)
 
+        if result.returncode != 0:
             return False
 
         print(
@@ -236,12 +252,16 @@ def generate_trade_xml():
 
     try:
 
-        timestamp = datetime.now().strftime(
-            "%Y-%m-%dT%H:%M:%S"
+        timestamp = (
+            datetime.now().strftime(
+                "%Y-%m-%dT%H:%M:%S"
+            )
         )
 
-        trade_date = datetime.now().strftime(
-            "%Y-%m-%d"
+        trade_date = (
+            datetime.now().strftime(
+                "%Y-%m-%d"
+            )
         )
 
         internal_reference = (
@@ -343,11 +363,15 @@ if __name__ == "__main__":
             reason="Environment readiness check failed"
         )
 
-        print("\nSTATUS : NOT READY")
+        print(
+            "\nSTATUS : NOT READY"
+        )
 
         sys.exit(1)
 
-    print("\nSTATUS : READY")
+    print(
+        "\nSTATUS : READY"
+    )
 
     quartz_success = (
         run_quartz_task()
@@ -435,32 +459,22 @@ if __name__ == "__main__":
             reason="Trade not found"
         )
 
-        print(
-            f"\nNo trade found for "
-            f"{internal_reference}"
-        )
-
         sys.exit(1)
 
     trade = search_result["rows"][0]
 
     trade_status = trade["Status"]
 
-    print("\nTrade Found")
-
     print(
-        f"Trade ID      : "
-        f"{trade['Trade ID']}"
+        f"\nTrade ID      : {trade['Trade ID']}"
     )
 
     print(
-        f"Reference     : "
-        f"{trade['External Reference']}"
+        f"Reference     : {trade['External Reference']}"
     )
 
     print(
-        f"Status        : "
-        f"{trade_status}"
+        f"Status        : {trade_status}"
     )
 
     if trade_status != "BS_FINALIZED":
@@ -472,12 +486,6 @@ if __name__ == "__main__":
             trade_id=trade["Trade ID"],
             trade_status=trade_status,
             reason="Trade not in BS_FINALIZED status"
-        )
-
-        print(
-            f"\nTrade status is "
-            f"{trade_status} "
-            f"instead of BS_FINALIZED"
         )
 
         sys.exit(1)
