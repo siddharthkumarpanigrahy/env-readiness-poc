@@ -9,7 +9,43 @@ from backend import submit_trade
 from backend import search_trade
 
 
-ENVIRONMENT_NAME = "Smoke 3"
+TARGET_ENV = os.getenv(
+    "TARGET_ENV",
+    "Smoke3"
+)
+
+ENVIRONMENTS = {
+
+    "Smoke2": {
+
+        "display_name": "Smoke 2",
+
+        "backend_env": "Smoke2",
+
+        "ssh_user": "smoke2",
+
+        "host":
+            "otc-clearing-test-smoke2-primary-rhel-01."
+            "clearing-otc.dev.gcp.dbgcloud.io"
+    },
+
+    "Smoke3": {
+
+        "display_name": "Smoke 3",
+
+        "backend_env": "Smoke3",
+
+        "ssh_user": "smoke3",
+
+        "host":
+            "otc-clearing-test-smoke3-primary-rhel-01."
+            "clearing-otc.dev.gcp.dbgcloud.io"
+    }
+}
+
+ENV_CONFIG = ENVIRONMENTS[TARGET_ENV]
+
+ENVIRONMENT_NAME = ENV_CONFIG["display_name"]
 
 TEMPLATE_XML = "trade.xml"
 
@@ -17,7 +53,6 @@ VALID_STATUSES = [
     "BS_FINALIZED",
     "VERIFIED"
 ]
-
 
 ENV_READINESS_QUERY = """
 SELECT TASK_ID,
@@ -73,6 +108,7 @@ def create_email_summary(
         )
 
         if reason:
+
             f.write(
                 f"Reason      : {reason}\n"
             )
@@ -159,10 +195,13 @@ def run_quartz_task():
     try:
 
         command = (
-            "ssh "
-            "smoke3@otc-clearing-test-smoke3-primary-rhel-01."
-            "clearing-otc.dev.gcp.dbgcloud.io "
-            "\"sh /home/smoke3/management-script/executeTask.sh 19190\""
+            f"ssh "
+            f"{ENV_CONFIG['ssh_user']}@"
+            f"{ENV_CONFIG['host']} "
+            f"\"sh /home/"
+            f"{ENV_CONFIG['ssh_user']}"
+            f"/management-script/"
+            f"executeTask.sh 19190\""
         )
 
         print(
@@ -359,7 +398,7 @@ if __name__ == "__main__":
         xml_content = f.read()
 
     result = submit_trade(
-        "Smoke3",
+        ENV_CONFIG["backend_env"],
         xml_content
     )
 
@@ -412,7 +451,7 @@ if __name__ == "__main__":
     time.sleep(20)
 
     search_result = search_trade(
-        "Smoke3",
+        ENV_CONFIG["backend_env"],
         internal_reference
     )
 
@@ -454,7 +493,11 @@ if __name__ == "__main__":
             "FAILED",
             reference=internal_reference,
             trade_id=trade["Trade ID"],
-            trade_status=trade_status
+            trade_status=trade_status,
+            reason=(
+                "Trade not in an accepted status "
+                "(BS_FINALIZED or VERIFIED)"
+            )
         )
 
         sys.exit(1)
@@ -491,7 +534,11 @@ if __name__ == "__main__":
         f"ENVIRONMENT={ENVIRONMENT_NAME}"
     )
 
-    with open("email.properties", "w") as f:
+    with open(
+        "email.properties",
+        "w",
+        encoding="utf-8"
+    ) as f:
 
         f.write(
             f"TRADE_ID={trade['Trade ID']}\n"
@@ -506,5 +553,5 @@ if __name__ == "__main__":
         )
 
         f.write(
-            f"ENVIRONMENT={ENVIRONMENT_NAME}\n"
+            f'ENVIRONMENT="{ENVIRONMENT_NAME}"\n'
         )
