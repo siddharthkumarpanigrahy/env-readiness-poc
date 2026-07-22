@@ -454,11 +454,7 @@ if __name__ == "__main__":
             "FAILED",
             reference=internal_reference,
             trade_id=trade["Trade ID"],
-            trade_status=trade_status,
-            reason=(
-                "Trade not in an accepted status "
-                "(BS_FINALIZED or VERIFIED)"
-            )
+            trade_status=trade_status
         )
 
         sys.exit(1)
