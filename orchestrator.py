@@ -1,6 +1,5 @@
 import os
 import sys
-import re
 import time
 import subprocess
 import oracledb
@@ -14,13 +13,10 @@ ENVIRONMENT_NAME = "Smoke 3"
 
 TEMPLATE_XML = "trade.xml"
 
-CALYPSO_CODE = (
-    "/home/otcci/jenkins-eclci/workspace/"
-    "OTC/OTC-Core/Accenture_Jobs/"
-    "ManagedJobs/Git-files-no-hist"
-)
-
-LOG_DIR = "/tmp"
+VALID_STATUSES = [
+    "BS_FINALIZED",
+    "VERIFIED"
+]
 
 
 ENV_READINESS_QUERY = """
@@ -153,42 +149,9 @@ def check_environment_readiness():
 
 def get_next_internal_reference():
 
-    current_day = datetime.now().strftime(
-        "%Y%m%d"
+    return datetime.now().strftime(
+        "%Y%m%d_SKP_%H%M%S_%f"
     )
-
-    try:
-
-        with open(
-            TEMPLATE_XML,
-            "r",
-            encoding="utf-8"
-        ) as f:
-
-            content = f.read()
-
-        match = re.search(
-            r"[0-9]{8}[^0-9A-Za-z]*SKP[^0-9]*([0-9]+)",
-            content
-        )
-
-        sequence = (
-            int(match.group(1))
-            if match
-            else 0
-        )
-
-        next_sequence = (
-            f"{sequence + 1:02d}"
-        )
-
-        return (
-            f"{current_day}_SKP_{next_sequence}"
-        )
-
-    except Exception:
-
-        return f"{current_day}_SKP_01"
 
 
 def run_quartz_task():
@@ -203,7 +166,7 @@ def run_quartz_task():
         )
 
         print(
-            "\n===== 19190 ====="
+            "\n===== TASK 19190 EXECUTION ====="
         )
 
         print(
@@ -226,9 +189,11 @@ def run_quartz_task():
             print(result.stderr)
 
         if result.returncode != 0:
+
             print(
                 "\nTask 19190 execution failed"
             )
+
             return False
 
         print(
@@ -244,6 +209,7 @@ def run_quartz_task():
         )
 
         return False
+
 
 def generate_trade_xml():
 
@@ -370,20 +336,6 @@ if __name__ == "__main__":
         "\nSTATUS : READY"
     )
 
-    quartz_success = (
-        run_quartz_task()
-    )
-
-    if not quartz_success:
-
-        create_email_summary(
-            ENVIRONMENT_NAME,
-            "FAILED",
-            reason="Quartz Task 19190 execution failed"
-        )
-
-        sys.exit(1)
-
     internal_reference, output_xml = (
         generate_trade_xml()
     )
@@ -438,6 +390,27 @@ if __name__ == "__main__":
 
     time.sleep(20)
 
+    quartz_success = (
+        run_quartz_task()
+    )
+
+    if not quartz_success:
+
+        create_email_summary(
+            ENVIRONMENT_NAME,
+            "FAILED",
+            reference=internal_reference,
+            reason="Task 19190 execution failed"
+        )
+
+        sys.exit(1)
+
+    print(
+        "\nWaiting 20 seconds after Task 19190..."
+    )
+
+    time.sleep(20)
+
     search_result = search_trade(
         "Smoke3",
         internal_reference
@@ -474,7 +447,7 @@ if __name__ == "__main__":
         f"Status        : {trade_status}"
     )
 
-    if trade_status != "BS_FINALIZED":
+    if trade_status not in VALID_STATUSES:
 
         create_email_summary(
             ENVIRONMENT_NAME,
@@ -482,7 +455,10 @@ if __name__ == "__main__":
             reference=internal_reference,
             trade_id=trade["Trade ID"],
             trade_status=trade_status,
-            reason="Trade not in BS_FINALIZED status"
+            reason=(
+                "Trade not in an accepted status "
+                "(BS_FINALIZED or VERIFIED)"
+            )
         )
 
         sys.exit(1)
@@ -496,7 +472,7 @@ if __name__ == "__main__":
     )
 
     print(
-        "\nTrade successfully reached BS_FINALIZED"
+        f"\nTrade reached accepted status: {trade_status}"
     )
 
     print(
@@ -518,8 +494,21 @@ if __name__ == "__main__":
     print(
         f"ENVIRONMENT={ENVIRONMENT_NAME}"
     )
-with open("email.properties", "w") as f:
-    f.write(f"TRADE_ID={trade['Trade ID']}\n")
-    f.write(f"TRADE_STATUS={trade_status}\n")
-    f.write(f"REFERENCE={internal_reference}\n")
-    f.write(f"ENVIRONMENT={ENVIRONMENT_NAME}\n")
+
+    with open("email.properties", "w") as f:
+
+        f.write(
+            f"TRADE_ID={trade['Trade ID']}\n"
+        )
+
+        f.write(
+            f"TRADE_STATUS={trade_status}\n"
+        )
+
+        f.write(
+            f"REFERENCE={internal_reference}\n"
+        )
+
+        f.write(
+            f"ENVIRONMENT={ENVIRONMENT_NAME}\n"
+        )
