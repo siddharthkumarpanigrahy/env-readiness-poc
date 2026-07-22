@@ -3,7 +3,7 @@ import sys
 import re
 import time
 import subprocess
-import oracledb # type: ignore
+import oracledb
 
 from datetime import datetime
 from backend import submit_trade
@@ -196,23 +196,18 @@ def run_quartz_task():
     try:
 
         command = (
-            f"sh {CALYPSO_CODE}/client/bin/calypso "
-            f"@{CALYPSO_CODE}/client/resources/jvmArgs17.txt "
-            "-Djavax.net.ssl.trustStore=/home/$USER/build/calypso-code/client/resources/certificates/client.truststore "
-            "-Djavax.net.ssl.trustStorePassword=calypso "
-            "com.calypso.apps.startup.StartQuartzTaskRunner "
-            "-env $USER "
-            "-user calypso_user "
-            "-task 19190 "
-            f"{LOG_DIR}"
+            "ssh "
+            "smoke3@otc-clearing-test-smoke3-primary-rhel-01."
+            "clearing-otc.dev.gcp.dbgcloud.io "
+            "\"sh /home/smoke3/management-script/executeTask.sh 19190\""
         )
 
         print(
-            "\n===== QUARTZ TASK EXECUTION ====="
+            "\n===== 19190 ====="
         )
 
         print(
-            "\nExecuting Quartz Command:"
+            "\nExecuting Command:"
         )
 
         print(command)
@@ -231,10 +226,13 @@ def run_quartz_task():
             print(result.stderr)
 
         if result.returncode != 0:
+            print(
+                "\nTask 19190 execution failed"
+            )
             return False
 
         print(
-            "\nQuartz Task 19190 completed"
+            "\nTask 19190 completed successfully"
         )
 
         return True
@@ -242,11 +240,10 @@ def run_quartz_task():
     except Exception as e:
 
         print(
-            f"\nQuartz execution failed : {e}"
+            f"\nTask execution failed : {e}"
         )
 
         return False
-
 
 def generate_trade_xml():
 
