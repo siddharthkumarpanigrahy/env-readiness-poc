@@ -2,7 +2,7 @@ import os
 import sys
 import time
 import subprocess
-import oracledb
+import oracledb # type: ignore
 
 from datetime import datetime
 from backend import submit_trade
