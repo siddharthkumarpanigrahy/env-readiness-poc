@@ -2,50 +2,9 @@ import os
 import sys
 import time
 import subprocess
-import oracledb # type: ignore
-
+import oracledb
 from datetime import datetime
-from backend import submit_trade
-from backend import search_trade
-
-
-TARGET_ENV = os.getenv(
-    "TARGET_ENV",
-    "Smoke3"
-)
-
-ENVIRONMENTS = {
-
-    "Smoke2": {
-
-        "display_name": "Smoke 2",
-
-        "backend_env": "Smoke2",
-
-        "ssh_user": "smoke2",
-
-        "host":
-            "otc-clearing-test-smoke2-primary-rhel-01."
-            "clearing-otc.dev.gcp.dbgcloud.io"
-    },
-
-    "Smoke3": {
-
-        "display_name": "Smoke 3",
-
-        "backend_env": "Smoke3",
-
-        "ssh_user": "smoke3",
-
-        "host":
-            "otc-clearing-test-smoke3-primary-rhel-01."
-            "clearing-otc.dev.gcp.dbgcloud.io"
-    }
-}
-
-ENV_CONFIG = ENVIRONMENTS[TARGET_ENV]
-
-ENVIRONMENT_NAME = ENV_CONFIG["display_name"]
+from backend import submit_trade, search_trade
 
 TEMPLATE_XML = "trade.xml"
 
@@ -53,6 +12,29 @@ VALID_STATUSES = [
     "BS_FINALIZED",
     "VERIFIED"
 ]
+
+ENVIRONMENTS = {
+    "Smoke2": {
+        "display_name": "Smoke 2",
+        "backend_env": "Smoke2",
+        "task_id": 19190,
+        "ssh_user": "smoke2",
+        "host": "otc-clearing-test-smoke2-primary-rhel-01.clearing-otc.dev.gcp.dbgcloud.io",
+        "db_url_env": "SMOKE2_DB_URL",
+        "db_user_env": "SMOKE2_DB_USER",
+        "db_password_env": "SMOKE2_DB_PASSWORD"
+    },
+    "Smoke3": {
+        "display_name": "Smoke 3",
+        "backend_env": "Smoke3",
+        "task_id": 19190,
+        "ssh_user": "smoke3",
+        "host": "otc-clearing-test-smoke3-primary-rhel-01.clearing-otc.dev.gcp.dbgcloud.io",
+        "db_url_env": "SMOKE3_DB_URL",
+        "db_user_env": "SMOKE3_DB_USER",
+        "db_password_env": "SMOKE3_DB_PASSWORD"
+    }
+}
 
 ENV_READINESS_QUERY = """
 SELECT TASK_ID,
@@ -68,14 +50,7 @@ ORDER BY val_time DESC
 """
 
 
-def create_email_summary(
-    environment,
-    status,
-    reference="N/A",
-    trade_id="N/A",
-    trade_status="N/A",
-    reason=""
-):
+def create_email_summary(results):
 
     with open(
         "email_summary.txt",
@@ -84,50 +59,70 @@ def create_email_summary(
     ) as f:
 
         f.write(
-            "Environment Readiness Update\n\n"
+            "Environment Readiness Summary\n\n"
         )
 
         f.write(
-            f"Environment : {environment}\n"
+            "------------------------------------------------------------\n"
         )
 
         f.write(
-            f"Status      : {status}\n"
+            f"{'Environment':<15}"
+            f"{'Trade ID':<15}"
+            f"{'Trade Status':<20}\n"
         )
 
         f.write(
-            f"Reference   : {reference}\n"
+            "------------------------------------------------------------\n"
         )
 
-        f.write(
-            f"Trade ID    : {trade_id}\n"
-        )
-
-        f.write(
-            f"Trade Status: {trade_status}\n"
-        )
-
-        if reason:
+        for result in results:
 
             f.write(
-                f"Reason      : {reason}\n"
+                f"{result['environment']:<15}"
+                f"{result['trade_id']:<15}"
+                f"{result['trade_status']:<20}\n"
             )
 
+        f.write(
+            "------------------------------------------------------------\n"
+        )
 
-def check_environment_readiness():
+
+def check_environment_readiness(env_config):
 
     connection = None
     cursor = None
 
     try:
 
-        connection = oracledb.connect(
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            dsn=os.getenv("DB_URL")
+        db_url = os.getenv(
+            env_config["db_url_env"]
+        )
+        print(type(db_url))
+        print(len(db_url))
+        print(
+            f"Database URL for "
+            f"{env_config['display_name']} : "
+            f"{repr(db_url)}"
+            )
+
+        db_user = os.getenv(
+            env_config["db_user_env"]
         )
 
-        print("DB Connected")
+        db_password = os.getenv(
+            env_config["db_password_env"]
+        )
+        print(f"db_url={db_url}")
+        print(f"db_user={db_user}")
+        print(f"db_password={db_password}")
+
+        connection = oracledb.connect(
+            user=db_user,
+            password=db_password,
+            dsn=db_url
+        )
 
         cursor = connection.cursor()
 
@@ -135,37 +130,17 @@ def check_environment_readiness():
             ENV_READINESS_QUERY
         )
 
-        env_readiness_record = cursor.fetchone()
-
-        if env_readiness_record:
-
-            exec_status = env_readiness_record[2]
-            val_time = env_readiness_record[3]
-
-            print(
-                "\nEnvironment Readiness Check PASSED"
-            )
-
-            print(
-                f"Execution      : {exec_status}"
-            )
-
-            print(
-                f"Execution Time : {val_time}"
-            )
-
-            return True
-
-        print(
-            "\nEnvironment Readiness Check FAILED"
+        env_readiness_record = (
+            cursor.fetchone()
         )
 
-        return False
+        return env_readiness_record is not None
 
     except Exception as e:
 
         print(
-            f"\nDatabase Error : {e}"
+            f"Database Error "
+            f"({env_config['display_name']}): {e}"
         )
 
         return False
@@ -178,10 +153,6 @@ def check_environment_readiness():
         if connection:
             connection.close()
 
-        print(
-            "DB Disconnected"
-        )
-
 
 def get_next_internal_reference():
 
@@ -190,81 +161,9 @@ def get_next_internal_reference():
     )
 
 
-def run_quartz_task():
-
-    try:
-
-        command = (
-            f"ssh "
-            f"{ENV_CONFIG['ssh_user']}@"
-            f"{ENV_CONFIG['host']} "
-            f"\"sh /home/"
-            f"{ENV_CONFIG['ssh_user']}"
-            f"/management-script/"
-            f"executeTask.sh 19190\""
-        )
-
-        print(
-            "\n===== TASK 19190 EXECUTION ====="
-        )
-
-        print(
-            "\nExecuting Command:"
-        )
-
-        print(command)
-
-        result = subprocess.run(
-            command,
-            shell=True,
-            capture_output=True,
-            text=True
-        )
-
-        if result.stdout:
-            print(result.stdout)
-
-        if result.stderr:
-            print(result.stderr)
-
-        if result.returncode != 0:
-
-            print(
-                "\nTask 19190 execution failed"
-            )
-
-            return False
-
-        print(
-            "\nTask 19190 completed successfully"
-        )
-
-        return True
-
-    except Exception as e:
-
-        print(
-            f"\nTask execution failed : {e}"
-        )
-
-        return False
-
-
 def generate_trade_xml():
 
     try:
-
-        timestamp = (
-            datetime.now().strftime(
-                "%Y-%m-%dT%H:%M:%S"
-            )
-        )
-
-        trade_date = (
-            datetime.now().strftime(
-                "%Y-%m-%d"
-            )
-        )
 
         internal_reference = (
             get_next_internal_reference()
@@ -280,12 +179,16 @@ def generate_trade_xml():
 
         xml_content = xml_content.replace(
             "{{TIMESTAMP}}",
-            timestamp
+            datetime.now().strftime(
+                "%Y-%m-%dT%H:%M:%S"
+            )
         )
 
         xml_content = xml_content.replace(
             "{{TRADE_DATE}}",
-            trade_date
+            datetime.now().strftime(
+                "%Y-%m-%d"
+            )
         )
 
         xml_content = xml_content.replace(
@@ -294,7 +197,8 @@ def generate_trade_xml():
         )
 
         output_xml = (
-            f"generated_trade_{internal_reference}.xml"
+            f"generated_trade_"
+            f"{internal_reference}.xml"
         )
 
         with open(
@@ -305,18 +209,6 @@ def generate_trade_xml():
 
             f.write(xml_content)
 
-        print(
-            "\nTrade XML Generated"
-        )
-
-        print(
-            f"Generated File : {output_xml}"
-        )
-
-        print(
-            f"Reference      : {internal_reference}"
-        )
-
         return (
             internal_reference,
             output_xml
@@ -325,10 +217,193 @@ def generate_trade_xml():
     except Exception as e:
 
         print(
-            f"\nXML Generation Error : {e}"
+            f"XML Generation Error: {e}"
         )
 
         return None, None
+
+
+def run_quartz_task(env_config):
+
+    try:
+
+        task_id = env_config["task_id"]
+
+        command = (
+            f"ssh "
+            f"{env_config['ssh_user']}@"
+            f"{env_config['host']} "
+            f"\"sh /home/"
+            f"{env_config['ssh_user']}"
+            f"/management-script/"
+            f"executeTask.sh {task_id}\""
+        )
+
+        print(
+            f"\nExecuting Task {task_id}"
+        )
+
+        result = subprocess.run(
+            command,
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+
+        if result.stdout:
+            print(result.stdout)
+
+        if result.stderr:
+            print(result.stderr)
+
+        return result.returncode == 0
+
+    except Exception as e:
+
+        print(
+            f"Task execution failed: {e}"
+        )
+
+        return False
+
+
+def run_environment(env_config):
+
+    result_data = {
+        "environment": env_config["display_name"],
+        "trade_id": "N/A",
+        "trade_status": "PROCESS_FAILED"
+    }
+
+    try:
+
+        print(
+            f"\n===== "
+            f"{env_config['display_name']} "
+            f"====="
+        )
+
+        if not check_environment_readiness(
+            env_config
+        ):
+
+            result_data["trade_status"] = (
+                "READINESS_CHECK_FAILED"
+            )
+
+            return result_data
+
+        internal_reference, output_xml = (
+            generate_trade_xml()
+        )
+
+        if not internal_reference:
+
+            result_data["trade_status"] = (
+                "XML_GENERATION_FAILED"
+            )
+
+            return result_data
+
+        with open(
+            output_xml,
+            "r",
+            encoding="utf-8"
+        ) as f:
+
+            xml_content = f.read()
+
+        submit_result = submit_trade(
+            env_config["backend_env"],
+            xml_content
+        )
+        print(f"Submit Result ({env_config['display_name']}):")
+        f"{repr(submit_result)}"
+
+        if submit_result["status"] != "SUCCESS":
+
+            result_data["trade_status"] = (
+                "TRADE_SUBMISSION_FAILED"
+            )
+
+            return result_data
+
+        print(
+            "\nWaiting 20 seconds "
+            "for trade creation..."
+        )
+
+        time.sleep(20)
+
+        if not run_quartz_task(
+            env_config
+        ):
+
+            result_data["trade_status"] = (
+                "TASK_EXECUTION_FAILED"
+            )
+
+            return result_data
+
+        print(
+            "\nWaiting 20 seconds "
+            "after task execution..."
+        )
+
+        time.sleep(20)
+
+        search_result = search_trade(
+            env_config["backend_env"],
+            internal_reference
+        )
+
+        if search_result["count"] == 0:
+
+            result_data["trade_status"] = (
+                "TRADE_NOT_FOUND"
+            )
+
+            return result_data
+
+        trade = search_result["rows"][0]
+
+        trade_id = trade["Trade ID"]
+        trade_status = trade["Status"]
+
+        result_data["trade_id"] = trade_id
+        print(
+            f"Trade ID      : {trade['Trade ID']}"
+        )
+
+        print(
+            f"Trade Status  : {trade_status}"
+        )
+
+        if trade_status not in VALID_STATUSES:
+
+            result_data["trade_status"] = (
+                f"INVALID_{trade_status}"
+            )
+
+            return result_data
+
+        result_data["trade_status"] = (
+            trade_status
+        )
+
+        return result_data
+
+    except Exception as e:
+
+        print(
+            f"Processing Error: {e}"
+        )
+
+        result_data["trade_status"] = (
+            "PROCESS_EXCEPTION"
+        )
+
+        return result_data
 
 
 if __name__ == "__main__":
@@ -346,212 +421,40 @@ if __name__ == "__main__":
     )
 
     print(
-        f"Environment : {ENVIRONMENT_NAME}"
+        f"Execution Time : "
+        f"{datetime.now()}"
     )
 
-    print(
-        f"Execution   : {datetime.now()}"
-    )
+    results = []
 
-    env_ready = (
-        check_environment_readiness()
-    )
-
-    if not env_ready:
-
-        create_email_summary(
-            ENVIRONMENT_NAME,
-            "NOT READY",
-            reason="Environment readiness check failed"
-        )
+    for _, env_config in ENVIRONMENTS.items():
+        
+        print(
+            f"Using DB variable: "
+            f"{env_config['db_url_env']}"
+            )
 
         print(
-            "\nSTATUS : NOT READY"
+            f"\nProcessing "
+            f"{env_config['display_name']}"
         )
 
-        sys.exit(1)
-
-    print(
-        "\nSTATUS : READY"
-    )
-
-    internal_reference, output_xml = (
-        generate_trade_xml()
-    )
-
-    if not internal_reference:
-
-        create_email_summary(
-            ENVIRONMENT_NAME,
-            "FAILED",
-            reason="Trade XML generation failed"
+        results.append(
+            run_environment(env_config)
         )
 
-        sys.exit(1)
-
-    with open(
-        output_xml,
-        "r",
-        encoding="utf-8"
-    ) as f:
-
-        xml_content = f.read()
-
-    result = submit_trade(
-        ENV_CONFIG["backend_env"],
-        xml_content
-    )
+    create_email_summary(results)
 
     print(
-        "\n===== TRADE SUBMISSION ====="
+        "\n===== SUMMARY ====="
     )
 
-    print(result)
-
-    if result["status"] != "SUCCESS":
-
-        create_email_summary(
-            ENVIRONMENT_NAME,
-            "FAILED",
-            reference=internal_reference,
-            reason="Trade submission failed"
-        )
-
-        sys.exit(1)
+    for result in results:
+        print(result)
 
     print(
-        "\nTrade submitted successfully"
+        "\nEnvironment Readiness "
+        "Report Generated Successfully"
     )
 
-    print(
-        "\nWaiting 20 seconds for trade creation..."
-    )
-
-    time.sleep(20)
-
-    quartz_success = (
-        run_quartz_task()
-    )
-
-    if not quartz_success:
-
-        create_email_summary(
-            ENVIRONMENT_NAME,
-            "FAILED",
-            reference=internal_reference,
-            reason="Task 19190 execution failed"
-        )
-
-        sys.exit(1)
-
-    print(
-        "\nWaiting 20 seconds after Task 19190..."
-    )
-
-    time.sleep(20)
-
-    search_result = search_trade(
-        ENV_CONFIG["backend_env"],
-        internal_reference
-    )
-
-    print(
-        "\n===== TRADE SEARCH ====="
-    )
-
-    if search_result["count"] == 0:
-
-        create_email_summary(
-            ENVIRONMENT_NAME,
-            "FAILED",
-            reference=internal_reference,
-            reason="Trade not found"
-        )
-
-        sys.exit(1)
-
-    trade = search_result["rows"][0]
-
-    trade_status = trade["Status"]
-
-    print(
-        f"\nTrade ID      : {trade['Trade ID']}"
-    )
-
-    print(
-        f"Reference     : {trade['External Reference']}"
-    )
-
-    print(
-        f"Status        : {trade_status}"
-    )
-
-    if trade_status not in VALID_STATUSES:
-
-        create_email_summary(
-            ENVIRONMENT_NAME,
-            "FAILED",
-            reference=internal_reference,
-            trade_id=trade["Trade ID"],
-            trade_status=trade_status,
-            reason=(
-                "Trade not in an accepted status "
-                "(BS_FINALIZED or VERIFIED)"
-            )
-        )
-
-        sys.exit(1)
-
-    create_email_summary(
-        ENVIRONMENT_NAME,
-        "READY",
-        reference=internal_reference,
-        trade_id=trade["Trade ID"],
-        trade_status=trade_status
-    )
-
-    print(
-        f"\nTrade reached accepted status: {trade_status}"
-    )
-
-    print(
-        "\nEND-TO-END FLOW COMPLETED SUCCESSFULLY"
-    )
-
-    print(
-        f"TRADE_ID={trade['Trade ID']}"
-    )
-
-    print(
-        f"TRADE_STATUS={trade_status}"
-    )
-
-    print(
-        f"REFERENCE={internal_reference}"
-    )
-
-    print(
-        f"ENVIRONMENT={ENVIRONMENT_NAME}"
-    )
-
-    with open(
-        "email.properties",
-        "w",
-        encoding="utf-8"
-    ) as f:
-
-        f.write(
-            f"TRADE_ID={trade['Trade ID']}\n"
-        )
-
-        f.write(
-            f"TRADE_STATUS={trade_status}\n"
-        )
-
-        f.write(
-            f"REFERENCE={internal_reference}\n"
-        )
-
-        f.write(
-            f'ENVIRONMENT="{ENVIRONMENT_NAME}"\n'
-        )
+    sys.exit(0)
